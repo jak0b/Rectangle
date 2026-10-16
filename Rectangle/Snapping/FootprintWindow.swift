@@ -52,17 +52,18 @@ private final class FootprintContentView: NSView {
 
 enum FootprintStyle {
     static let previewLevel = NSWindow.Level.modalPanel
-    static let cornerRadius: CGFloat = {
-        // Use the global corner radius override for the snap preview when available;
-        // otherwise, fall back to the default radius for this macOS version.
-        if #available(macOS 26.5, *) {
-           if let globalDomain = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain),
-           let overrideValue = globalDomain["NSConvolutionOverride1"] as? NSNumber { return CGFloat(overrideValue.floatValue) }
+    static var cornerRadius: CGFloat {
+        // Only use the global override when opted in; otherwise use the macOS default.
+        if #available(macOS 26.5, *), Defaults.footprintCornerRadiusOverride.enabled,
+           let globalDomain = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain),
+           let overrideValue = globalDomain["NSConvolutionOverride1"] as? NSNumber {
+            let radius = CGFloat(overrideValue.doubleValue)
+            if radius.isFinite && radius >= 0 { return radius }
         }
-        
+
         if #available(macOS 26.0, *) { return 16 }
         return 10
-    }()
+    }
     static let shadowPadding: CGFloat = 96
     static let shadowRadius: CGFloat = 32
     static let shadowOffset = CGSize(width: 0, height: -8)
@@ -83,7 +84,7 @@ final class FootprintShadow {
     let container = CALayer()
     let shape = CALayer()
     let cutout = CAShapeLayer()
-    let cornerRadius: CGFloat
+    var cornerRadius: CGFloat
     var layers: [CALayer] { [container, shape, cutout] }
 
     init(cornerRadius: CGFloat = FootprintStyle.cornerRadius) {
@@ -127,6 +128,7 @@ final class FootprintShadow {
 }
 
 class FootprintWindow: NSWindow {
+    private var cornerRadius = FootprintStyle.cornerRadius
     private let surface = NSView()
     private let effectView = NSVisualEffectView()
     private let decoration = CAShapeLayer()
@@ -181,7 +183,6 @@ class FootprintWindow: NSWindow {
         shadowView.layer?.addSublayer(shadow.container)
         root.addSubview(shadowView)
         root.addSubview(surface)
-        surface.layer?.cornerRadius = FootprintStyle.cornerRadius
         surface.layer?.masksToBounds = true
         effectView.material = .fullScreenUI
         effectView.blendingMode = .behindWindow
@@ -193,7 +194,19 @@ class FootprintWindow: NSWindow {
         decoration.contentsScale = backingScaleFactor
         decoration.contentsFormat = .RGBA8Uint
         if #available(macOS 26, *) { decoration.preferredDynamicRange = .standard }
-        let radius = FootprintStyle.cornerRadius
+        configureCornerRadius(cornerRadius)
+        contentView = root
+        root.appearanceDidChange = { [weak self] in self?.updateAppearance() }
+        updateAppearance()
+        accessibilityObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.refreshAccessibility() }
+    }
+
+    private func configureCornerRadius(_ radius: CGFloat) {
+        cornerRadius = radius
+        surface.layer?.cornerRadius = radius
+        shadow.cornerRadius = radius
         let mask = NSImage(size: NSSize(width: radius * 2 + 1, height: radius * 2 + 1), flipped: false) { rect in
             NSColor.white.setFill()
             NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
@@ -202,12 +215,6 @@ class FootprintWindow: NSWindow {
         mask.capInsets = NSEdgeInsets(top: radius, left: radius, bottom: radius, right: radius)
         mask.resizingMode = .stretch
         effectView.maskImage = mask
-        contentView = root
-        root.appearanceDidChange = { [weak self] in self?.updateAppearance() }
-        updateAppearance()
-        accessibilityObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main
-        ) { [weak self] _ in self?.refreshAccessibility() }
     }
 
     deinit {
@@ -217,6 +224,11 @@ class FootprintWindow: NSWindow {
     }
 
     private func updateAppearance() {
+        let radius = FootprintStyle.cornerRadius
+        if radius != cornerRadius {
+            configureCornerRadius(radius)
+            applyGeometry(displayedRect, duration: 0)
+        }
         let style = presentation
         let requested = style.usesBlur ? Defaults.blurAppearance.value.appearance : nil
         if appearance?.name != requested?.name { appearance = requested }
@@ -308,7 +320,7 @@ class FootprintWindow: NSWindow {
         let bounds = CGRect(origin: .zero, size: rect.size)
         let inset = decoration.lineWidth / 2
         let outline = bounds.insetBy(dx: min(inset, bounds.width / 2), dy: min(inset, bounds.height / 2))
-        let radius = max(0, min(FootprintStyle.cornerRadius - inset, min(outline.width, outline.height) / 2))
+        let radius = max(0, min(cornerRadius - inset, min(outline.width, outline.height) / 2))
         let path = CGPath(roundedRect: outline, cornerWidth: radius, cornerHeight: radius, transform: nil)
         NSAnimationContext.runAnimationGroup { context in
             context.duration = duration
