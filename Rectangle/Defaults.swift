@@ -71,6 +71,7 @@ class Defaults {
     static let footprintFade = OptionalBoolDefault(key: "footprintFade")
     static let footprintColor = JSONDefault<CodableColor>(key: "footprintColor")
     static let footprintBlur = BoolDefault(key: "footprintBlur")
+    static let footprintCornerRadiusOverride = BoolDefault(key: "footprintCornerRadiusOverride")
     static let blurAppearance = IntEnumDefault<BlurAppearance>(key: "blurAppearance", defaultValue: .system)
 
     static let SUEnableAutomaticChecks = BoolDefault(key: "SUEnableAutomaticChecks")
@@ -186,6 +187,7 @@ class Defaults {
         footprintFade,
         footprintColor,
         footprintBlur,
+        footprintCornerRadiusOverride,
         blurAppearance,
         SUEnableAutomaticChecks,
         todo,
