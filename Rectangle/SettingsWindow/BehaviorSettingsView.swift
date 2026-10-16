@@ -390,9 +390,6 @@ struct BehaviorSettingsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Divider()
                         Toggle("Animate windows", isOn: $viewModel.experimentalAnimations)
-                        if #available(macOS 26.5, *) {
-                            Toggle("Use NSConvolutionOverride1 property for snap preview corner radius (macOS 26.5+)", isOn: $viewModel.footprintCornerRadiusOverride)
-                        }
                         Toggle("Preserve side axis size for half actions, similar to Windows", isOn: $viewModel.halvesPreserveOtherAxisSize)
                         Toggle("Show warning when windows cannot be resized small enough", isOn: $viewModel.showMinimumWindowSizeWarning)
                         Toggle("Show *Extra* shortcuts in menu", isOn: $viewModel.showAdditionalSizesInMenu)
@@ -406,6 +403,14 @@ struct BehaviorSettingsView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Toggle("Treat multiple displays as one", isOn: $viewModel.combinedDisplayMode)
                                 Text("When using multiple displays, treats them as a single display. Requires System Settings > Desktop & Dock > Displays have separate Spaces to be OFF.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        if #available(macOS 26.5, *) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Toggle("Use system corner radius for snap previews", isOn: $viewModel.footprintCornerRadiusOverride)
+                                Text("Uses the global NSConvolutionOverride1 property. Requires macOS 26.5 or later.")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
