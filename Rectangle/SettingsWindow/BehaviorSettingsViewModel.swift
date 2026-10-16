@@ -78,6 +78,12 @@ final class BehaviorSettingsViewModel {
             Notification.Name.windowAnimationPreferencesChanged.post()
         }
     }
+
+    var footprintCornerRadiusOverride: Bool {
+        didSet {
+            Defaults.footprintCornerRadiusOverride.enabled = footprintCornerRadiusOverride
+        }
+    }
     
     var combinedDisplayMode: Bool {
         didSet {
@@ -202,6 +208,7 @@ final class BehaviorSettingsViewModel {
         self.autoMaximize = !Defaults.autoMaximize.userDisabled
         self.greenButtonOverride = Defaults.greenButtonOverride.enabled
         self.experimentalAnimations = Defaults.experimentalWindowAnimations.enabled
+        self.footprintCornerRadiusOverride = Defaults.footprintCornerRadiusOverride.enabled
         self.combinedDisplayMode = Defaults.combinedDisplayMode.userEnabled
         self.repeatedMaximizeRestoresPrevious = Defaults.repeatedMaximizeRestoresPrevious.enabled
         
@@ -264,6 +271,7 @@ final class BehaviorSettingsViewModel {
         self.autoMaximize = !Defaults.autoMaximize.userDisabled
         self.greenButtonOverride = Defaults.greenButtonOverride.enabled
         self.experimentalAnimations = Defaults.experimentalWindowAnimations.enabled
+        self.footprintCornerRadiusOverride = Defaults.footprintCornerRadiusOverride.enabled
         self.combinedDisplayMode = Defaults.combinedDisplayMode.userEnabled
         self.repeatedMaximizeRestoresPrevious = Defaults.repeatedMaximizeRestoresPrevious.enabled
         
