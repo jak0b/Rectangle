@@ -1,6 +1,7 @@
 /// FootprintWindow.swift
 
 import Cocoa
+import Foundation
 
 struct FootprintAccessibility {
     var reduceMotion: Bool
@@ -52,6 +53,13 @@ private final class FootprintContentView: NSView {
 enum FootprintStyle {
     static let previewLevel = NSWindow.Level.modalPanel
     static let cornerRadius: CGFloat = {
+        // Use the global corner radius override for the snap preview when available;
+        // otherwise, fall back to the default radius for this macOS version.
+        if #available(macOS 26.5, *) {
+           if let globalDomain = UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain),
+           let overrideValue = globalDomain["NSConvolutionOverride1"] as? NSNumber { return CGFloat(overrideValue.floatValue) }
+        }
+        
         if #available(macOS 26.0, *) { return 16 }
         return 10
     }()
